@@ -1,0 +1,16 @@
+{
+  "name": "import-attributes-precheck",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Explicit static pre-check for import attributes (with/assert dialects)",
+  "bin": {
+    "import-attributes-precheck": "./cli.mjs"
+  },
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "scripts": {
+    "test": "node test/run-tests.mjs"
+  }
+}
