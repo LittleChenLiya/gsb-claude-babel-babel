@@ -1236,9 +1236,16 @@ export default abstract class StatementParser extends ExpressionParser {
     let parsedNonDirective = false;
 
     while (!this.match(end)) {
+      const oldErrorsLength = this.state.errors.length;
+      const oldRecoverySegmentsLength = this.state.recoverySegments.length;
       const stmt = topLevel
         ? this.parseModuleItem()
         : this.parseStatementListItem();
+      this.recordRecoverySegment(
+        stmt,
+        oldErrorsLength,
+        oldRecoverySegmentsLength,
+      );
 
       if (directives && !parsedNonDirective) {
         if (this.isValidDirective(stmt)) {
@@ -1269,6 +1276,58 @@ export default abstract class StatementParser extends ExpressionParser {
     }
 
     this.next();
+  }
+
+  /**
+   * When `errorRecovery` is enabled, mark the source range of a statement
+   * that was parsed with recovered errors as a recovery segment, so that
+   * consumers can tell which AST ranges are reliable and which contain
+   * recovery nodes, instead of treating the whole AST as successful.
+   *
+   * Errors that are already covered by a nested recovery segment (recorded
+   * by an inner block body) do not cause the outer statement to be marked
+   * again, so the recorded segments stay as small as possible.
+   *
+   * Note: only recoverable errors raised through the core `raise`
+   * machinery are tracked here. Unknown recovery marks produced internally
+   * by plugin-specific syntax are not supported.
+   */
+  recordRecoverySegment(
+    this: Parser,
+    stmt: N.Statement,
+    oldErrorsLength: number,
+    oldRecoverySegmentsLength: number,
+  ): void {
+    if (!(this.optionFlags & OptionFlags.ErrorRecovery)) return;
+    const { errors, recoverySegments } = this.state;
+    if (errors.length === oldErrorsLength) return;
+
+    let hasUncoveredError = false;
+    for (let i = oldErrorsLength; i < errors.length; i++) {
+      const pos = errors[i].pos;
+      let covered = false;
+      for (
+        let j = oldRecoverySegmentsLength;
+        j < recoverySegments.length;
+        j++
+      ) {
+        const segment = recoverySegments[j];
+        if (segment.start <= pos && pos < segment.end) {
+          covered = true;
+          break;
+        }
+      }
+      if (!covered) {
+        hasUncoveredError = true;
+        break;
+      }
+    }
+
+    if (hasUncoveredError) {
+      // The statement is already finished at this point, so its range is
+      // set.
+      recoverySegments.push({ start: stmt.start!, end: stmt.end! });
+    }
   }
 
   // Parse a regular `for` loop. The disambiguation code in

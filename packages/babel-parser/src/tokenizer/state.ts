@@ -56,6 +56,14 @@ export default class State {
 
   errors: ParseError[] = [];
 
+  // Source ranges (in the same index space as node `start`/`end`) that
+  // contain recovered syntax errors when `errorRecovery` is enabled.
+  // Ranges outside these segments parsed cleanly and are reliable, while
+  // the AST inside these segments may contain recovery nodes. The segments
+  // are recorded along the parser state during the single parse pass, so
+  // that no second parse is needed to locate the recovered regions.
+  recoverySegments: Array<{ start: number; end: number }> = [];
+
   // Used to signify the start of an expression which looks like a
   // typed arrow function, but it isn't
   // e.g. a ? (b) : c => d
@@ -174,6 +182,7 @@ export default class State {
     state.startLoc = this.startLoc;
     state.endLoc = this.endLoc;
     state.errors = this.errors.slice();
+    state.recoverySegments = this.recoverySegments.slice();
     state.noArrowAt = this.noArrowAt.slice();
     state.noArrowParamsConversionAt = this.noArrowParamsConversionAt.slice();
     state.labels = this.labels.slice();

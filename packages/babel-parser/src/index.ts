@@ -29,10 +29,27 @@ export type { Expression, File };
 
 export type ParserOptions = Partial<Options>;
 
+/**
+ * A segment of the source text, reported when `errorRecovery` is enabled.
+ * Segments partition the parsed file: a segment with `reliable: true`
+ * parsed cleanly, while a segment with `reliable: false` contains
+ * recovered syntax errors and its AST may contain recovery nodes.
+ * `start` and `end` use the same index space as AST node `start`/`end`.
+ */
+export type RecoverySegment = {
+  start: number;
+  end: number;
+  reliable: boolean;
+};
+
 export type ParseResult<Result extends File | Expression = File> = Result & {
   comments: File["comments"];
   errors: ParseError[];
   tokens?: File["tokens"];
+  // Only present when the `errorRecovery` option is enabled: an explicit
+  // report of which source ranges are reliable and which contain recovery
+  // nodes, so that the whole AST is not treated as successful.
+  recoverySegments?: RecoverySegment[];
 };
 
 /**

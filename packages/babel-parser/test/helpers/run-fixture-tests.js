@@ -220,6 +220,10 @@ function parseWithRecovery(parse, source, filename, options) {
     const ast = parse(source, { errorRecovery: true, ...options });
     checkDuplicateNodes(ast);
 
+    // The recovery segment report is covered by dedicated unit tests and
+    // is not part of the fixture snapshots.
+    delete ast.recoverySegments;
+
     // Normalize the AST
     //
     // TODO: We should consider doing something more involved here as

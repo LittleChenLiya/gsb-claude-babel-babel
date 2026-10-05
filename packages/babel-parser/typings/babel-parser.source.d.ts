@@ -11,6 +11,7 @@ export type {
   TypeScriptPluginOptions,
   ParseError,
   ParseResult,
+  RecoverySegment,
 } from "../../../dts/packages/babel-parser/src/index.d.ts";
 
 export const tokTypes: {
