@@ -29,10 +29,35 @@ export type { Expression, File };
 
 export type ParserOptions = Partial<Options>;
 
+/**
+ * A segment of the source text reported by the `recoverySegments` option.
+ * Segments describe which ranges of the input were parsed cleanly and which
+ * ranges contain AST nodes recovered from parse errors.
+ */
+export interface RecoverySegment {
+  /** Start index (inclusive) of the covered source range. */
+  start: number;
+  /** End index (exclusive) of the covered source range. */
+  end: number;
+  /**
+   * `true` if this range contains AST nodes recovered from parse errors and
+   * thus should not be fully trusted; `false` if this range was parsed
+   * without any recovered error.
+   */
+  recovered: boolean;
+}
+
 export type ParseResult<Result extends File | Expression = File> = Result & {
   comments: File["comments"];
   errors: ParseError[];
   tokens?: File["tokens"];
+  /**
+   * Only present when the `recoverySegments` option is enabled (it requires
+   * `errorRecovery: true`): an explicit report of which source ranges are
+   * reliable and which contain recovered AST nodes. When the option is not
+   * enabled, this property is not added to the result.
+   */
+  recoverySegments?: RecoverySegment[];
 };
 
 /**

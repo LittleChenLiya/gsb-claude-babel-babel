@@ -74,6 +74,26 @@ export interface Options {
   errorRecovery?: boolean;
 
   /**
+   * By default, when `errorRecovery` is enabled the parse result does not
+   * describe which parts of the AST were recovered from errors, so consumers
+   * cannot tell reliable AST nodes apart from recovered ones.
+   * When this option is set to true (it requires `errorRecovery: true`), the
+   * parse result will contain a `recoverySegments` array: a list of source
+   * ranges, each flagged as either reliable (`recovered: false`) or
+   * containing recovered, potentially invalid AST nodes (`recovered: true`).
+   * The report is built from the errors and recovery points recorded in the
+   * parser state during the single parse pass; the input is never re-parsed
+   * to infer positions, and unrecoverable (fatal) errors still throw.
+   *
+   * Note: only recovery performed through the parser's standard error
+   * reporting is tracked. Unknown recovery markers produced internally by
+   * syntax plugins (e.g. TypeScript or Flow specific recovery that does not
+   * go through the parser's `raise` machinery) are not supported and will
+   * not be reflected in the report.
+   */
+  recoverySegments?: boolean;
+
+  /**
    * Indicate the mode the code should be parsed in.
    * Can be one of "script", "commonjs", "module", or "unambiguous". Defaults to "script".
    * "unambiguous" will make @babel/parser attempt to guess, based on the presence
@@ -169,6 +189,7 @@ export const enum OptionFlags {
   ErrorRecovery = 1 << 12,
   AttachComment = 1 << 13,
   AnnexB = 1 << 14,
+  RecoverySegments = 1 << 15,
 }
 
 type KeepOptionalKeys = "sourceFilename" | "strictMode";
@@ -233,6 +254,10 @@ function createDefaultOptions(): OptionsWithDefaults {
     // When enabled, errors are attached to the AST instead of being directly thrown.
     // Some errors will still throw, because @babel/parser can't always recover.
     errorRecovery: false,
+    // When enabled (requires `errorRecovery: true`), the parse result contains
+    // a `recoverySegments` report describing which source ranges are reliable
+    // and which contain AST nodes recovered from parse errors.
+    recoverySegments: false,
     // When enabled, comments will be attached to adjacent AST nodes as one of
     // `leadingComments`, `trailingComments` and `innerComments`. The comment attachment
     // is vital to preserve comments after transform. If you don't print AST back,
@@ -261,6 +286,12 @@ export function getOptions(opts?: Options | null): OptionsWithDefaults {
 
   for (const key of Object.keys(options) as (keyof Options)[]) {
     if (opts[key] != null) options[key] = opts[key];
+  }
+
+  if (options.recoverySegments && !options.errorRecovery) {
+    throw new Error(
+      "The `recoverySegments` option requires `errorRecovery` to be enabled.",
+    );
   }
 
   if (options.startLine === 1) {

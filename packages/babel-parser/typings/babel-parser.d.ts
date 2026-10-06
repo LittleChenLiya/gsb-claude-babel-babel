@@ -519,6 +519,25 @@ interface Options {
    */
   errorRecovery?: boolean;
   /**
+   * By default, when `errorRecovery` is enabled the parse result does not
+   * describe which parts of the AST were recovered from errors, so consumers
+   * cannot tell reliable AST nodes apart from recovered ones.
+   * When this option is set to true (it requires `errorRecovery: true`), the
+   * parse result will contain a `recoverySegments` array: a list of source
+   * ranges, each flagged as either reliable (`recovered: false`) or
+   * containing recovered, potentially invalid AST nodes (`recovered: true`).
+   * The report is built from the errors and recovery points recorded in the
+   * parser state during the single parse pass; the input is never re-parsed
+   * to infer positions, and unrecoverable (fatal) errors still throw.
+   *
+   * Note: only recovery performed through the parser's standard error
+   * reporting is tracked. Unknown recovery markers produced internally by
+   * syntax plugins (e.g. TypeScript or Flow specific recovery that does not
+   * go through the parser's `raise` machinery) are not supported and will
+   * not be reflected in the report.
+   */
+  recoverySegments?: boolean;
+  /**
    * Indicate the mode the code should be parsed in.
    * Can be one of "script", "commonjs", "module", or "unambiguous". Defaults to "script".
    * "unambiguous" will make @babel/parser attempt to guess, based on the presence
@@ -587,10 +606,34 @@ interface Options {
 }
 
 type ParserOptions = Partial<Options>;
+/**
+ * A segment of the source text reported by the `recoverySegments` option.
+ * Segments describe which ranges of the input were parsed cleanly and which
+ * ranges contain AST nodes recovered from parse errors.
+ */
+interface RecoverySegment {
+  /** Start index (inclusive) of the covered source range. */
+  start: number;
+  /** End index (exclusive) of the covered source range. */
+  end: number;
+  /**
+   * `true` if this range contains AST nodes recovered from parse errors and
+   * thus should not be fully trusted; `false` if this range was parsed
+   * without any recovered error.
+   */
+  recovered: boolean;
+}
 type ParseResult<Result extends File | Expression = File> = Result & {
   comments: File["comments"];
   errors: ParseError[];
   tokens?: File["tokens"];
+  /**
+   * Only present when the `recoverySegments` option is enabled (it requires
+   * `errorRecovery: true`): an explicit report of which source ranges are
+   * reliable and which contain recovered AST nodes. When the option is not
+   * enabled, this property is not added to the result.
+   */
+  recoverySegments?: RecoverySegment[];
 };
 /**
  * Parse the provided code as an entire ECMAScript program.
@@ -616,6 +659,7 @@ export {
   type ParserOptions,
   type PluginConfig as ParserPlugin,
   type PipelineOperatorPluginOptions,
+  type RecoverySegment,
   type TypeScriptPluginOptions,
   parse,
   parseExpression,

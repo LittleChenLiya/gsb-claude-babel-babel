@@ -9,6 +9,23 @@ import type { Errors, ParseError } from "../parse-error.ts";
 export type DeferredStrictError =
   typeof Errors.StrictNumericEscape | typeof Errors.StrictOctalLiteral;
 
+/**
+ * A recovery segment mark recorded while parsing a single top-level
+ * statement. This is the internal counterpart of the public
+ * `RecoverySegment` report entries: it additionally tracks how many
+ * recovered errors were attributed to the statement.
+ */
+export interface RecoverySegmentMark {
+  /** Start index (inclusive) of the statement's source range. */
+  start: number;
+  /** End index (exclusive) of the statement's source range. */
+  end: number;
+  /** Whether recovered errors were reported while parsing the statement. */
+  recovered: boolean;
+  /** Number of recovered errors attributed to the statement. */
+  errors: number;
+}
+
 export const enum LoopLabelKind {
   Loop = 1,
   Switch = 2,
@@ -55,6 +72,17 @@ export default class State {
   }
 
   errors: ParseError[] = [];
+
+  /**
+   * Recovery segment marks recorded at top-level statement boundaries when
+   * the `recoverySegments` option is enabled. Each mark covers the source
+   * range of one top-level statement and records how many recovered errors
+   * were reported to `state.errors` while parsing it, so that the parser can
+   * later tell reliable AST ranges apart from ranges containing recovered
+   * (potentially invalid) nodes. The `errors` count also lets the parser
+   * detect errors reported outside of any top-level statement.
+   */
+  recoverySegmentMarks: RecoverySegmentMark[] = [];
 
   // Used to signify the start of an expression which looks like a
   // typed arrow function, but it isn't
@@ -174,6 +202,7 @@ export default class State {
     state.startLoc = this.startLoc;
     state.endLoc = this.endLoc;
     state.errors = this.errors.slice();
+    state.recoverySegmentMarks = this.recoverySegmentMarks.slice();
     state.noArrowAt = this.noArrowAt.slice();
     state.noArrowParamsConversionAt = this.noArrowParamsConversionAt.slice();
     state.labels = this.labels.slice();

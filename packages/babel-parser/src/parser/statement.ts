@@ -1235,10 +1235,31 @@ export default abstract class StatementParser extends ExpressionParser {
     let hasStrictModeDirective = false;
     let parsedNonDirective = false;
 
+    // When the `recoverySegments` option is enabled, record a recovery
+    // segment mark for every top-level statement, based on the recovered
+    // errors reported to the parser state while parsing it. This runs in
+    // the same single parse pass: positions are never inferred by
+    // re-parsing the input.
+    const recordRecoverySegments =
+      topLevel && (this.optionFlags & OptionFlags.RecoverySegments) !== 0;
+
     while (!this.match(end)) {
+      const oldErrorsLength = recordRecoverySegments
+        ? this.state.errors.length
+        : 0;
       const stmt = topLevel
         ? this.parseModuleItem()
         : this.parseStatementListItem();
+
+      if (recordRecoverySegments) {
+        const errors = this.state.errors.length - oldErrorsLength;
+        this.state.recoverySegmentMarks.push({
+          start: stmt.start!,
+          end: stmt.end!,
+          recovered: errors > 0,
+          errors,
+        });
+      }
 
       if (directives && !parsedNonDirective) {
         if (this.isValidDirective(stmt)) {
