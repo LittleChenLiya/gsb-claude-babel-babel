@@ -1,0 +1,19 @@
+{
+  "name": "import-attributes-precheck",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Explicit pre-check for duplicate import attributes, with plugin-mode-separated attributes/assertions dialects.",
+  "bin": {
+    "import-attributes-precheck": "./src/cli.js"
+  },
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "node test/run-test.js"
+  },
+  "peerDependencies": {
+    "@babel/parser": "^7.0.0"
+  }
+}
