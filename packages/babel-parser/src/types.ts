@@ -25,11 +25,51 @@ export type Comment = CommentBlock | CommentLine;
 
 export type ExportedToken = Omit<Token, "type"> & { type: ExportedTokenType };
 
+/**
+ * How a comment is attached to its owner node:
+ * - "leading": the comment precedes the owner node;
+ * - "trailing": the comment follows the owner node;
+ * - "dangling": the comment is not adjacent to any sibling node, so it is
+ *   owned by the innermost node containing it.
+ */
+export type CommentOwnershipKind = "leading" | "trailing" | "dangling";
+
+/**
+ * A read-only record describing the single owner of a parsed comment.
+ * @see {@link Options.commentOwnership}
+ */
+export interface CommentOwnershipRecord {
+  /**
+   * How the comment is attached to its owner node.
+   */
+  kind: CommentOwnershipKind;
+  /**
+   * Type and range of the comment.
+   */
+  comment: {
+    type: Comment["type"];
+    start: number;
+    end: number;
+  };
+  /**
+   * Type and range of the AST node that owns the comment.
+   */
+  owner: {
+    type: string;
+    start: number;
+    end: number;
+  };
+}
+
 export interface ParserOutput {
   comments: Comment[];
   errors: ParseError[];
   tokens?: (ExportedToken | Comment)[];
   locData?: Uint32Array;
+  /**
+   * Present only when the `commentOwnership` parser option is enabled.
+   */
+  commentOwnership?: readonly CommentOwnershipRecord[];
 }
 
 export interface BaseNode {

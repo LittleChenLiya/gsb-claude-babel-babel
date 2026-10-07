@@ -513,6 +513,20 @@ interface Options {
    */
   attachComment?: boolean;
   /**
+   * By default, the parse result does not include a comment ownership view.
+   * When this option is set to true, the parse result will contain an
+   * additional read-only `commentOwnership` array: for every parsed comment
+   * it records the single AST node that owns the comment, how it is attached
+   * ("leading", "trailing" or "dangling") and the type and range of both the
+   * comment and the owner node.
+   * The view reuses the existing comment attachment data; a comment that is
+   * adjacent to two nodes is reported exactly once, preferring "leading"
+   * over "trailing" over "dangling".
+   * When `attachComment` is false, or when the input contains no comments,
+   * `commentOwnership` is an empty array.
+   */
+  commentOwnership?: boolean;
+  /**
    * By default, Babel always throws an error when it finds some invalid code.
    * When this option is set to true, it will store the parsing error and
    * try to continue parsing the invalid input file.
@@ -587,10 +601,47 @@ interface Options {
 }
 
 type ParserOptions = Partial<Options>;
+/**
+ * How a comment is attached to its owner node:
+ * - "leading": the comment precedes the owner node;
+ * - "trailing": the comment follows the owner node;
+ * - "dangling": the comment is not adjacent to any sibling node, so it is
+ *   owned by the innermost node containing it.
+ */
+type CommentOwnershipKind = "leading" | "trailing" | "dangling";
+/**
+ * A read-only record describing the single owner of a parsed comment.
+ */
+interface CommentOwnershipRecord {
+  /**
+   * How the comment is attached to its owner node.
+   */
+  kind: CommentOwnershipKind;
+  /**
+   * Type and range of the comment.
+   */
+  comment: {
+    type: "CommentBlock" | "CommentLine";
+    start: number;
+    end: number;
+  };
+  /**
+   * Type and range of the AST node that owns the comment.
+   */
+  owner: {
+    type: string;
+    start: number;
+    end: number;
+  };
+}
 type ParseResult<Result extends File | Expression = File> = Result & {
   comments: File["comments"];
   errors: ParseError[];
   tokens?: File["tokens"];
+  /**
+   * Present only when the `commentOwnership` parser option is enabled.
+   */
+  commentOwnership?: readonly CommentOwnershipRecord[];
 };
 /**
  * Parse the provided code as an entire ECMAScript program.
@@ -610,6 +661,8 @@ declare const tokTypes: {
 };
 
 export {
+  type CommentOwnershipKind,
+  type CommentOwnershipRecord,
   type FlowPluginOptions,
   type ParseError,
   type ParseResult,

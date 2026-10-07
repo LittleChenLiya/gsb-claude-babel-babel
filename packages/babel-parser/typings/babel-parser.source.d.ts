@@ -11,6 +11,8 @@ export type {
   TypeScriptPluginOptions,
   ParseError,
   ParseResult,
+  CommentOwnershipKind,
+  CommentOwnershipRecord,
 } from "../../../dts/packages/babel-parser/src/index.d.ts";
 
 export const tokTypes: {

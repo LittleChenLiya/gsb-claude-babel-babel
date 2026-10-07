@@ -127,3 +127,32 @@ After we set the containing node, we can assign comments to related node, since 
 ### Finalize comment whitespaces
 
 In this step we attach the comments and do the trailing comma adjustments. Note that an extra routine `finalizeRemainingComments` is provided for `parseExpression`, which may not have opportunity to finalize comments which is added to the leading/trailing of the top level Expression node.
+
+### Comment ownership view
+
+The attachment rules above intentionally attach a comment to _both_ adjacent
+nodes when it sits between them (as the trailing comment of the previous node
+and as the leading comment of the next one). Tools that need to attribute
+every comment to a single owner can enable the `commentOwnership` parser
+option, which adds a read-only `commentOwnership` array to the parse result:
+
+```js
+parse("/* doc */\nfunction f() {}", { commentOwnership: true }).commentOwnership;
+// [
+//   {
+//     kind: "leading",
+//     comment: { type: "CommentBlock", start: 0, end: 9 },
+//     owner: { type: "FunctionDeclaration", start: 10, end: 25 },
+//   },
+// ]
+```
+
+The view is derived from the existing attachment data
+(`leadingComments`/`trailingComments`/`innerComments`) and guarantees that
+every parsed comment is reported exactly once: when a comment is attached to
+multiple nodes, the `leading` attachment wins over `trailing`, which wins
+over `dangling` (inner comments). Each record exposes the kind of attachment
+plus the type and range of both the comment and its owner node. When
+`attachComment` is `false`, or when the input contains no comments, the view
+is an empty array. When the option is not enabled the parse result is
+unchanged.

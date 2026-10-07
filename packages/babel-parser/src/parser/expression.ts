@@ -65,6 +65,7 @@ import type { Undone } from "./node.ts";
 import type Parser from "./index.ts";
 
 import { OptionFlags, type SourceType } from "../options.ts";
+import { buildCommentOwnership } from "../comment-ownership.ts";
 import { createExportedTokens } from "./statement.ts";
 
 export default abstract class ExpressionParser extends LValParser {
@@ -167,6 +168,9 @@ export default abstract class ExpressionParser extends LValParser {
     this.finalizeRemainingComments();
     expr.comments = this.comments;
     expr.errors = this.state.errors;
+    if (this.optionFlags & OptionFlags.CommentOwnership) {
+      expr.commentOwnership = buildCommentOwnership(expr);
+    }
     if (this.optionFlags & OptionFlags.Tokens) {
       expr.tokens = createExportedTokens(this.tokens);
     }

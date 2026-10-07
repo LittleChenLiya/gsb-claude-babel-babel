@@ -1,5 +1,6 @@
 import type * as N from "../types.ts";
 import { getOptions, OptionFlags } from "../options.ts";
+import { buildCommentOwnership } from "../comment-ownership.ts";
 import StatementParser from "./statement.ts";
 import ScopeHandler from "../util/scope.ts";
 import type { ParserOptions, ParseResult, File } from "@babel/parser";
@@ -67,6 +68,9 @@ export default class Parser extends StatementParser {
     if (normalizedOptions.annexB) {
       optionFlags |= OptionFlags.AnnexB;
     }
+    if (normalizedOptions.commentOwnership) {
+      optionFlags |= OptionFlags.CommentOwnership;
+    }
 
     this.optionFlags = optionFlags;
   }
@@ -87,6 +91,9 @@ export default class Parser extends StatementParser {
     result.errors = this.state.errors;
     // @ts-expect-error todo: check if comments exist when `options.attachComment` is false
     result.comments.length = this.state.commentsLen;
+    if (this.optionFlags & OptionFlags.CommentOwnership) {
+      result.commentOwnership = buildCommentOwnership(result);
+    }
     return result;
   }
 }

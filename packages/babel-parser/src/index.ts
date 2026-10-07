@@ -15,6 +15,11 @@ import type { ParseError } from "./parse-error.ts";
 export type { ParseError };
 
 import type { ExportedTokenType } from "./tokenizer/types.ts";
+import type {
+  CommentOwnershipKind,
+  CommentOwnershipRecord,
+} from "./types.ts";
+export type { CommentOwnershipKind, CommentOwnershipRecord };
 import {
   getExportedToken,
   tt as internalTokenTypes,
@@ -33,6 +38,13 @@ export type ParseResult<Result extends File | Expression = File> = Result & {
   comments: File["comments"];
   errors: ParseError[];
   tokens?: File["tokens"];
+  /**
+   * A read-only view describing the unique owner node of every parsed
+   * comment. Only present when the `commentOwnership` option is enabled.
+   * It is an empty array when `attachComment` is `false` or when the input
+   * contains no comments.
+   */
+  commentOwnership?: readonly CommentOwnershipRecord[];
 };
 
 /**
