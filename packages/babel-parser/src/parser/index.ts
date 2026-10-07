@@ -2,6 +2,7 @@ import type * as N from "../types.ts";
 import { getOptions, OptionFlags } from "../options.ts";
 import StatementParser from "./statement.ts";
 import ScopeHandler from "../util/scope.ts";
+import { getCommentOwnership } from "../util/comment-ownership.ts";
 import type { ParserOptions, ParseResult, File } from "@babel/parser";
 
 export type PluginsMap = Map<string, Record<string, any>>;
@@ -87,6 +88,15 @@ export default class Parser extends StatementParser {
     result.errors = this.state.errors;
     // @ts-expect-error todo: check if comments exist when `options.attachComment` is false
     result.comments.length = this.state.commentsLen;
+    if (this.options.commentOwnership) {
+      // When comments are not attached (`attachComment: false`), there is
+      // no attachment data to reuse and the ownership view is explicitly
+      // empty.
+      result.commentOwnership =
+        this.optionFlags & OptionFlags.AttachComment
+          ? getCommentOwnership(result)
+          : [];
+    }
     return result;
   }
 }

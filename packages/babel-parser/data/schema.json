@@ -71,6 +71,10 @@
       "description": "By default, exported identifiers must refer to a declared variable.\nSet this to true to allow export statements to reference undeclared variables.",
       "type": "boolean"
     },
+    "commentOwnership": {
+      "description": "When enabled, the parse result will include a `commentOwnership` property:\na read-only view that assigns every parsed comment to exactly one owner node\n(as a \"leading\", \"trailing\" or \"inner\" attachment, including the owner node's\ntype and range) or marks it as \"detached\". When comments are not attached\n(`attachComment: false`), the view is explicitly empty.",
+      "type": "boolean"
+    },
     "createImportExpressions": {
       "description": "By default, `import(foo)` is parsed as an `ImportExpression`.\nSet this to false to parse it as ``CallExpression(Import, [Identifier(foo)])``.",
       "type": "boolean",

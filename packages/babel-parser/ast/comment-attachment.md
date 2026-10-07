@@ -127,3 +127,21 @@ After we set the containing node, we can assign comments to related node, since 
 ### Finalize comment whitespaces
 
 In this step we attach the comments and do the trailing comma adjustments. Note that an extra routine `finalizeRemainingComments` is provided for `parseExpression`, which may not have opportunity to finalize comments which is added to the leading/trailing of the top level Expression node.
+
+## Comment ownership view
+
+The attachment data above can reference a single comment from two nodes: a
+comment whitespace between two siblings is attached both as
+`trailingComments` of the preceding node and as `leadingComments` of the
+following node. When the `commentOwnership` parser option is enabled, the
+parse result includes a `commentOwnership` property: a read-only view that
+assigns every comment in `ast.comments` to exactly one owner node, reported
+as `{ comment, kind, owner }` records in source order, where `kind` is
+`"leading"`, `"trailing"`, `"inner"` or `"detached"` and `owner` carries the
+owner node's `type`, `start` and `end` (or `null` for detached comments).
+Attachments are deduplicated by comment identity with a deterministic
+priority: leading > trailing > inner. The same view can be computed from any
+parsed AST with the exported `getCommentOwnership(ast)` helper. When comments
+are not attached (`attachComment: false`), the option-driven view is
+explicitly empty; when the option is not enabled, the parse result is
+unchanged.

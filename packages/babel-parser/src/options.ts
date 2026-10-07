@@ -67,6 +67,18 @@ export interface Options {
   attachComment?: boolean;
 
   /**
+   * When enabled, the parse result will include a `commentOwnership` property:
+   * a read-only view that assigns every parsed comment to exactly one owner
+   * node (as a "leading", "trailing" or "inner" attachment, including the
+   * owner node's type and range) or marks it as "detached".
+   * It reuses the comment attachment data, so it requires `attachComment`
+   * to be enabled: when comments are not attached (`attachComment: false`),
+   * the view is explicitly empty.
+   * It defaults to false: when not enabled, the parse result is unchanged.
+   */
+  commentOwnership?: boolean;
+
+  /**
    * By default, Babel always throws an error when it finds some invalid code.
    * When this option is set to true, it will store the parsing error and
    * try to continue parsing the invalid input file.
@@ -238,6 +250,10 @@ function createDefaultOptions(): OptionsWithDefaults {
     // is vital to preserve comments after transform. If you don't print AST back,
     // consider set this option to `false` for performance
     attachComment: true,
+    // When enabled, the parse result includes a `commentOwnership` read-only
+    // view assigning every comment to exactly one owner node (or marking it
+    // as detached). When `attachComment` is disabled, the view is empty.
+    commentOwnership: false,
     // When enabled, the parser will support Annex B syntax.
     // https://tc39.es/ecma262/#sec-additional-ecmascript-features-for-web-browsers
     annexB: true,

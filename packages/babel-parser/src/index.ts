@@ -22,6 +22,14 @@ import {
 } from "./tokenizer/types.ts";
 export type { Token } from "./tokenizer/index.ts";
 
+export { getCommentOwnership } from "./util/comment-ownership.ts";
+export type {
+  CommentOwnershipKind,
+  CommentOwner,
+  CommentOwnershipRecord,
+} from "./util/comment-ownership.ts";
+import type { CommentOwnershipRecord } from "./util/comment-ownership.ts";
+
 // TODO: Rather than type-casting the internal AST definitions to the
 // @babel/types one, we should actually unify them.
 import type { Expression, File } from "@babel/types";
@@ -33,6 +41,12 @@ export type ParseResult<Result extends File | Expression = File> = Result & {
   comments: File["comments"];
   errors: ParseError[];
   tokens?: File["tokens"];
+  /**
+   * Present only when the `commentOwnership` parser option is enabled:
+   * a read-only view assigning every parsed comment to exactly one owner
+   * node, or marking it as detached.
+   */
+  commentOwnership?: CommentOwnershipRecord[];
 };
 
 /**
