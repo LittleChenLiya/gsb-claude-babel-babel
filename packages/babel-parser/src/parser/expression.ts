@@ -168,7 +168,10 @@ export default abstract class ExpressionParser extends LValParser {
     expr.comments = this.comments;
     expr.errors = this.state.errors;
     if (this.optionFlags & OptionFlags.Tokens) {
-      expr.tokens = createExportedTokens(this.tokens);
+      expr.tokens = createExportedTokens(
+        this.tokens,
+        this.options.redactTokens,
+      );
     }
     return expr;
   }

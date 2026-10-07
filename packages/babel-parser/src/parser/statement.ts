@@ -23,6 +23,7 @@ import {
   newParameterDeclarationScope,
 } from "../util/expression-scope.ts";
 import { OptionFlags } from "../options.ts";
+import type { Options } from "../options.ts";
 import type { Token } from "../tokenizer/index.ts";
 import type { Position } from "../util/location.ts";
 import { createPositionWithColumnOffset } from "../util/location.ts";
@@ -31,6 +32,10 @@ import type Parser from "./index.ts";
 import { ParseBindingListFlags } from "./lval.ts";
 import { LoopLabelKind } from "../tokenizer/state.ts";
 import type { ExportedToken } from "../types.ts";
+import {
+  redactExportedTokens,
+  resolveRedactTokensOptions,
+} from "../tokenizer/redact-tokens.ts";
 
 const loopLabel = { kind: LoopLabelKind.Loop } as const,
   switchLabel = { kind: LoopLabelKind.Switch } as const;
@@ -60,8 +65,17 @@ const keywordRelationalOperator = /in(?:stanceof)?/y;
  * The internal token type will be replaced by the exported one with more metadata.
  * For performance reasons this routine mutates `tokens`, it is okay
  * here since we execute `parseTopLevel` once for every file.
+ *
+ * When token-level redaction is enabled (`redactTokens` parser option),
+ * the token export adapter is applied afterwards. It rebuilds the token
+ * array and masks only the `value` of the selected token types (and,
+ * independently, comments), preserving `type`/range/`loc` without
+ * touching the original AST or the code generation input.
  */
-export function createExportedTokens(tokens: (Token | N.Comment)[]) {
+export function createExportedTokens(
+  tokens: (Token | N.Comment)[],
+  redactTokens?: Options["redactTokens"],
+) {
   for (let i = 0; i < tokens.length; i++) {
     const token = tokens[i];
     const { type } = token;
@@ -70,7 +84,13 @@ export function createExportedTokens(tokens: (Token | N.Comment)[]) {
       (token as unknown as ExportedToken).type = getExportedToken(type);
     }
   }
-  return tokens as unknown as (ExportedToken | N.Comment)[];
+  const exportedTokens = tokens as unknown as (ExportedToken | N.Comment)[];
+
+  const redaction = resolveRedactTokensOptions(redactTokens);
+  if (redaction === null) {
+    return exportedTokens;
+  }
+  return redactExportedTokens(exportedTokens, redaction);
 }
 export default abstract class StatementParser extends ExpressionParser {
   // ### Statement parsing
@@ -93,7 +113,10 @@ export default abstract class StatementParser extends ExpressionParser {
     file.comments = this.comments;
 
     if (this.optionFlags & OptionFlags.Tokens) {
-      file.tokens = createExportedTokens(this.tokens);
+      file.tokens = createExportedTokens(
+        this.tokens,
+        this.options.redactTokens,
+      );
     }
 
     return this.finishNode(file, "File");

@@ -1,4 +1,5 @@
 import type { Plugin } from "./plugin-utils.ts";
+import type { RedactTokensOptions } from "./tokenizer/redact-tokens.ts";
 
 // A second optional argument can be given to further configure
 // the parser process. These options are recognized:
@@ -139,6 +140,17 @@ export interface Options {
   tokens?: boolean;
 
   /**
+   * When set together with `tokens: true`, applies local redaction to the
+   * exported token stream: only the `value` of the selected token types
+   * is masked, while `type`, `start`/`end` (range) and `loc` are
+   * preserved. Comments are configured independently via `comments` and
+   * are never redacted unless requested. The redaction only affects the
+   * exported tokens, it does not mutate the AST or the code generation
+   * input.
+   */
+  redactTokens?: RedactTokensOptions | null;
+
+  /**
    * By default, the parser adds information about parentheses by setting
    * `extra.parenthesized` to `true` as needed.
    * When this option is `true` the parser creates `ParenthesizedExpression`
@@ -224,6 +236,8 @@ function createDefaultOptions(): OptionsWithDefaults {
     locations: true,
     // Adds all parsed tokens to a `tokens` property on the `File` node
     tokens: false,
+    // Token-level redaction options; `null` keeps the original token values
+    redactTokens: null,
     // Whether to create ImportExpression AST nodes (if false
     // `import(foo)` will be parsed as CallExpression(Import, [Identifier(foo)])
     createImportExpressions: true,
